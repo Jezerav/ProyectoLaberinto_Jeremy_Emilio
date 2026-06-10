@@ -4,7 +4,8 @@
 #include <QWidget>
 #include <QGraphicsScene>
 #include <QGraphicsView>
-#include <QGraphicsSceneResizeEvent>
+#include <QShowEvent>
+#include <QKeyEvent>
 
 class Juego : public QWidget
 {
@@ -18,14 +19,20 @@ public:
     void dibujarMapa();
     void liberarMapa();
 
+protected:
+    void showEvent(QShowEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+
 private:
     QGraphicsScene *escena;
     QGraphicsView *vista;
 
-    int **mapa; // aqui se utiliza el doble puntero
+    int **mapa;
     int filas;
     int columnas;
-    int tamCelda; // aqui esta el tamano en pixeles de cada celda
+    int tamCelda;
+    int jugadorFila;
+    int jugadorColumna;
 
     void cargarNivel1();
     void cargarNivel2();

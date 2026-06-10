@@ -22,6 +22,8 @@ private slots:
 
     void on_btnManual_clicked();
 
+    void on_btnJugar_clicked();
+
 private:
     Ui::MainWindow *ui;
 };

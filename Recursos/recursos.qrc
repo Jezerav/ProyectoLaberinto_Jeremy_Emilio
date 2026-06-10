@@ -2,5 +2,9 @@
     <qresource prefix="/imagenes">
         <file>fondoMenu.png</file>
         <file>fondoManual.png</file>
+        <file>muro.png</file>
+        <file>prota.png</file>
+        <file>camino.png</file>
+        <file>salida.png</file>
     </qresource>
 </RCC>

@@ -1,145 +1,235 @@
 #include "juego.h"
+#include <QGraphicsPixmapItem>
+#include <QGraphicsItem>
 #include <QVBoxLayout>
-#include <QBrush>
-#include <QPen>
+#include <QShowEvent>
+#include <QKeyEvent>
 
-// Leyenda del mapa:
-// 1 = Pared
-// 0 = Camino libre
-// 2 = Salida
-// 3 = Posición inicial del jugador
+Juego::Juego(QWidget *parent) : QWidget(parent) {
+    filas = 0;
+    columnas = 0;
+    tamCelda = 80; // Un buen tamaño intermedio nítido
+    mapa = nullptr;
 
-Juego::Juego(QWidget *parent)
-    : QWidget(parent),
-    escena(nullptr),
-    vista(nullptr),
-    mapa(nullptr),
-    filas(0),
-    columnas(0),
-    tamCelda(40)
-{
     escena = new QGraphicsScene(this);
-    vista  = new QGraphicsView(escena, this);
-    vista->setRenderHint(QPainter::Antialiasing);
-    vista->setFixedSize(800, 600);
+    vista = new QGraphicsView(escena, this);
 
+    // Layout para que la vista ocupe TODO el tamaño de la ventana dinámicamente
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addWidget(vista);
-    setLayout(layout);
+    layout->setContentsMargins(0, 0, 0, 0); // Elimina los bordes blancos alrededor
+    this->setLayout(layout);
+    this->setFocusPolicy(Qt::StrongFocus);
 
-    iniciarNivel(1);
+    // Definir un tamaño inicial cómodo para la ventana del juego
+    this->resize(800, 600);
 }
 
-// ---------------- Control de memoria dinamica -----------
-
-void Juego::liberarMapa() {
-    if(mapa != nullptr) {
-        for(int i = 0; i < filas; i++) {
-            delete[] mapa[i]; // liberar columnas
-        }
-        delete[] mapa;
-        mapa = nullptr;
-    }
+// Destructor obligatorio para liberar la memoria del doble puntero sin fugas
+Juego::~Juego() {
+    liberarMapa();
 }
-
-// --------- Control de Nivles ---------- //
 
 void Juego::iniciarNivel(int nivel) {
-    liberarMapa();  // se libera el mapa anterior (solo si existia)
-    escena->clear(); // limpia la escena
+    liberarMapa(); // Limpiar nivel anterior si existe en memoria
 
-    switch(nivel) {
-    case 1:
+    if (nivel == 1) {
         cargarNivel1();
-        break;
-    case 2:
+    } else if (nivel == 2) {
         cargarNivel2();
-        break;
-    case 3:
+    } else if (nivel == 3) {
         cargarNivel3();
-        break;
-    default:
-        cargarNivel1();
-        break;
     }
 
     dibujarMapa();
 }
 
-// ----------- Nivel 1 ----------------
-
-// crear el mapa dinamico
 void Juego::cargarNivel1() {
-    int filas = 15;
-    int columans = 15;
+    filas = 5;
+    columnas = 5;
 
-
-    mapa = new int*[filas]; // primero se crea el mapa dinamico (fila)
-    for(int i = 0; i < filas; i++) {
-        mapa[i] = new int[columnas]; // por cada fila se crea una columna
+    // Reservar memoria dinámica para las filas y columnas (int**)
+    mapa = new int*[filas];
+    for (int i = 0; i < filas; i++) {
+        mapa[i] = new int[columnas];
     }
 
-    // mapa
-    int nivel1[10][10] = {
-        {1,1,1,1,1},
-        {1,3,0,0,1},
-        {1,0,0,0,1},
-        {1,0,0,0,1},
-        {1,0,0,2,1},
-        {1,0,0,0,1},
-        {1,0,0,0,1},
-        {1,0,0,0,1},
-        {1,0,0,0,1},
-        {1,0,0,2,1},
+    // Mapa base de prueba (1: Muro, 0: Camino, 2: Salida, 3: Jugador)
+    int mapaTemporal[5][5] = {
+        {1, 1, 1, 1, 1},
+        {1, 3, 0, 0, 1},
+        {1, 1, 1, 0, 1},
+        {1, 0, 0, 2, 1},
+        {1, 1, 1, 1, 1}
     };
 
-    // poniendo el mapa en el arreglo dinamico
-    for(int i = 0; i < filas; i++) {
-        for(int j = 0; j < columnas; j++) {
-            mapa[i][j] = nivel1[i][j];
+    // Copiar los datos estáticos a nuestra matriz dinámica
+    // ... dentro de los bucles for de cargarNivel1() ...
+    for (int i = 0; i < filas; i++) {
+        for (int j = 0; j < columnas; j++) {
+            mapa[i][j] = mapaTemporal[i][j];
+
+            // Guardamos la posición donde inicia el prota
+            if (mapa[i][j] == 3) {
+                jugadorFila = i;
+                jugadorColumna = j;
+            }
         }
     }
 }
 
+void Juego::cargarNivel2() {
+    // Por implementar más adelante
+    filas = 0;
+    columnas = 0;
+}
+
+void Juego::cargarNivel3() {
+    // Por implementar más adelante
+    filas = 0;
+    columnas = 0;
+}
+
+void Juego::liberarMapa() {
+    // Si la matriz tiene memoria asignada, se borra en orden inverso
+    if (mapa != nullptr) {
+        for (int i = 0; i < filas; i++) {
+            delete[] mapa[i]; // Borra las celdas de la fila
+        }
+        delete[] mapa; // Borra el contenedor de filas
+        mapa = nullptr;
+    }
+}
+
 void Juego::dibujarMapa() {
+    if (mapa == nullptr) return;
+
     escena->clear();
 
-    QPixmap imgPared("");
-    QPixmap imgCamino("");
-    QPixmap imgSalida("");
-    QPixmap imgJugador("");
+    // Carga de imágenes desde el sistema de recursos .qrc con el prefijo ":/"
+    QPixmap imgPared(":/imagenes/muro.png");
+    QPixmap imgCamino(":/imagenes/camino.png");
+    QPixmap imgSalida(":/imagenes/salida.png");
+    QPixmap imgJugador(":/imagenes/prota.png");
 
-    // Poner las imagenes del tamano de cada celda
-
-    imgPared = imgPared.scaled(tamCelda, tamCelda, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-    imgCamino = imgPared.scaled(tamCelda, tamCelda, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-    imgSalida = imgPared.scaled(tamCelda, tamCelda, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-    imgJugador = imgPared.scaled(tamCelda, tamCelda, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    // Escalado correcto asignando cada imagen a su propia variable
+    imgPared   = imgPared.scaled(tamCelda, tamCelda, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    imgCamino  = imgCamino.scaled(tamCelda, tamCelda, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    imgSalida  = imgSalida.scaled(tamCelda, tamCelda, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    imgJugador = imgJugador.scaled(tamCelda, tamCelda, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 
     for(int i = 0; i < filas; i++) {
         for(int j = 0; j < columnas; j++) {
-            QPixmap pixmapUsado;
 
+            // Caso 1: Si es un Muro normal (1)
             if(mapa[i][j] == 1) {
-                pixmapUsado = imgPared;
+                QGraphicsPixmapItem *muroItem = new QGraphicsPixmapItem(imgPared);
+                muroItem->setPos(j * tamCelda, i * tamCelda);
+                escena->addItem(muroItem);
             }
+            // Caso 2: Si es un Camino normal (0)
             else if(mapa[i][j] == 0) {
-                pixmapUsado = imgCamino;
+                QGraphicsPixmapItem *caminoItem = new QGraphicsPixmapItem(imgCamino);
+                caminoItem->setPos(j * tamCelda, i * tamCelda);
+                escena->addItem(caminoItem);
             }
+            // Caso 3: Si es la Salida (2) -> ¡Camino de fondo + Salida encima!
             else if(mapa[i][j] == 2) {
-                pixmapUsado = imgSalida;
+                // 1. Dibujamos el camino primero (atrás)
+                QGraphicsPixmapItem *caminoFondo = new QGraphicsPixmapItem(imgCamino);
+                caminoFondo->setPos(j * tamCelda, i * tamCelda);
+                escena->addItem(caminoFondo);
+
+                // 2. Dibujamos la salida encima (adelante)
+                QGraphicsPixmapItem *salidaItem = new QGraphicsPixmapItem(imgSalida);
+                salidaItem->setPos(j * tamCelda, i * tamCelda);
+                escena->addItem(salidaItem);
             }
+            // Caso 4: Si es el Jugador (3) -> ¡Camino de fondo + Prota encima!
             else if(mapa[i][j] == 3) {
-                pixmapUsado = imgJugador;
-            } else {
-                pixmapUsado = imgCamino;
+                // 1. Dibujamos el camino primero (atrás)
+                QGraphicsPixmapItem *caminoFondo = new QGraphicsPixmapItem(imgCamino);
+                caminoFondo->setPos(j * tamCelda, i * tamCelda);
+                escena->addItem(caminoFondo);
+
+                // 2. Se dibuja al jugador encima (adelante)
+                QGraphicsPixmapItem *jugadorItem = new QGraphicsPixmapItem(imgJugador);
+                jugadorItem->setPos(j * tamCelda, i * tamCelda);
+                escena->addItem(jugadorItem);
+            }
+            // Por si acaso hay cualquier otro valor, dejamos camino por defecto
+            else {
+                QGraphicsPixmapItem *caminoItem = new QGraphicsPixmapItem(imgCamino);
+                caminoItem->setPos(j * tamCelda, i * tamCelda);
+                escena->addItem(caminoItem);
             }
 
-            QGraphicsPixmapItem *celda = new QGraphicsPixmapItem(pixmapUsado);
-            celda->setPos(j * tamCelda, i * tamCelda);
-            escena->addItem(celda);
         }
     }
+
+    // Delimitar el tamaño real que abarca la escena
     escena->setSceneRect(0, 0, columnas * tamCelda, filas * tamCelda);
-    vista->fitInView(escena->sceneRect(), Qt::KeepAspectRatio);
+}
+
+// CORRECCIÓN CLAVE: Este evento se ejecuta cuando la ventana se muestra físicamente en pantalla
+// garantizando que las dimensiones calculadas para encajar el mapa sean las correctas.
+void Juego::showEvent(QShowEvent *event) {
+    QWidget::showEvent(event); // Ejecutar comportamiento base de Qt
+
+    if (escena && vista) {
+        // Ajusta y estira la escena para ocupar toda la pantalla manteniendo la proporción
+        vista->fitInView(escena->sceneRect(), Qt::KeepAspectRatio);
+    }
+}
+
+void Juego::keyPressEvent(QKeyEvent *event) {
+    // Variables para calcular el posible movimiento destino
+    int nuevaFila = jugadorFila;
+    int nuevaColumna = jugadorColumna;
+
+    // Detectar qué tecla presionó el usuario
+    switch (event->key()) {
+    case Qt::Key_W: case Qt::Key_Up:    // Arriba
+        nuevaFila--;
+        break;
+    case Qt::Key_S: case Qt::Key_Down:  // Abajo
+        nuevaFila++;
+        break;
+    case Qt::Key_A: case Qt::Key_Left:  // Izquierda
+        nuevaColumna--;
+        break;
+    case Qt::Key_D: case Qt::Key_Right: // Derecha
+        nuevaColumna++;
+        break;
+    default:
+        QWidget::keyPressEvent(event); // Si es otra tecla, ignorarla
+        return;
+    }
+
+    // VALIDACIÓN 1: Asegurarse de que no se salga de las dimensiones de la matriz
+    if (nuevaFila >= 0 && nuevaFila < filas && nuevaColumna >= 0 && nuevaColumna < columnas) {
+
+        // VALIDACIÓN 2: ¿La celda destino NO es un muro (1)?
+        if (mapa[nuevaFila][nuevaColumna] != 1) {
+
+            // Si el destino es la salida (2), puedes lanzar un mensaje de victoria aquí
+            if (mapa[nuevaFila][nuevaColumna] == 2) {
+                // ¡Ganaste! Por ahora dejemos que camine encima
+            }
+
+            // MODIFICAR LA MATRIZ:
+            // 1. La celda vieja donde estaba el prota vuelve a ser un camino libre (0)
+            mapa[jugadorFila][jugadorColumna] = 0;
+
+            // 2. Actualizamos las coordenadas de nuestra posición actual
+            jugadorFila = nuevaFila;
+            jugadorColumna = nuevaColumna;
+
+            // 3. La nueva celda en la matriz se convierte en el jugador (3)
+            mapa[jugadorFila][jugadorColumna] = 3;
+
+            // REDIBUJAR: Borra la escena y vuelve a renderizar todo el mapa actualizado
+            dibujarMapa();
+        }
+    }
 }
