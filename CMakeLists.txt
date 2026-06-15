@@ -38,6 +38,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Juego/salida.h Juego/salida.cpp
         Recursos/recursos.qrc
         MenuPrincipal/manual.h MenuPrincipal/manual.cpp MenuPrincipal/manual.ui
+        MenuPrincipal/lobby.h MenuPrincipal/lobby.cpp MenuPrincipal/lobby.ui
     )
 
 # Ejemplo de lo que deberías tener en tu CMakeLists.txt

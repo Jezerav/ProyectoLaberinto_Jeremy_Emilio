@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "manual.h"
+#include "lobby.h"
 #include "./ui_mainwindow.h"
 #include "../Juego/juego.h"
 
@@ -31,13 +32,9 @@ void MainWindow::on_btnManual_clicked()
 
 void MainWindow::on_btnJugar_clicked()
 {
-    Juego *ventanaJuego = new Juego();
+    Lobby *lobby = new Lobby();
 
-    // Pro Tip: Cargar primero el nivel 1 (que crea la matriz en memoria)
-    // e internamente llamará a dibujarMapa().
-    ventanaJuego->iniciarNivel(1);
-
-    ventanaJuego->show();
+    lobby->show();
     this->hide();
 }
 

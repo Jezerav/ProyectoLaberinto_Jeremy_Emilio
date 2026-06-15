@@ -8,16 +8,15 @@
 Juego::Juego(QWidget *parent) : QWidget(parent) {
     filas = 0;
     columnas = 0;
-    tamCelda = 80; // Un buen tamaño intermedio nítido
+    tamCelda = 80;
     mapa = nullptr;
 
     escena = new QGraphicsScene(this);
     vista = new QGraphicsView(escena, this);
 
-    // Layout para que la vista ocupe TODO el tamaño de la ventana dinámicamente
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addWidget(vista);
-    layout->setContentsMargins(0, 0, 0, 0); // Elimina los bordes blancos alrededor
+    layout->setContentsMargins(0, 0, 0, 0);
     this->setLayout(layout);
     this->setFocusPolicy(Qt::StrongFocus);
 
@@ -25,25 +24,32 @@ Juego::Juego(QWidget *parent) : QWidget(parent) {
     this->resize(800, 600);
 }
 
-// Destructor obligatorio para liberar la memoria del doble puntero sin fugas
+// Destructor para liberar la memoria del doble puntero sin fugas
 Juego::~Juego() {
     liberarMapa();
 }
 
-void Juego::iniciarNivel(int nivel) {
-    liberarMapa(); // Limpiar nivel anterior si existe en memoria
+void Juego::iniciarNivel(int nivel)
+{
+    nivelActual = nivel;
 
-    if (nivel == 1) {
+    liberarMapa();
+
+    if (nivel == 1)
+    {
         cargarNivel1();
-    } else if (nivel == 2) {
+    }
+    else if (nivel == 2)
+    {
         cargarNivel2();
-    } else if (nivel == 3) {
+    }
+    else if (nivel == 3)
+    {
         cargarNivel3();
     }
 
     dibujarMapa();
 }
-
 void Juego::cargarNivel1() {
     filas = 5;
     columnas = 5;
@@ -57,19 +63,17 @@ void Juego::cargarNivel1() {
     // Mapa base de prueba (1: Muro, 0: Camino, 2: Salida, 3: Jugador)
     int mapaTemporal[5][5] = {
         {1, 1, 1, 1, 1},
-        {1, 3, 0, 0, 1},
+        {1, 3, 0, 0, 0},
         {1, 1, 1, 0, 1},
-        {1, 0, 0, 2, 1},
+        {1, 2, 0, 0, 1},
         {1, 1, 1, 1, 1}
     };
 
-    // Copiar los datos estáticos a nuestra matriz dinámica
-    // ... dentro de los bucles for de cargarNivel1() ...
     for (int i = 0; i < filas; i++) {
         for (int j = 0; j < columnas; j++) {
             mapa[i][j] = mapaTemporal[i][j];
 
-            // Guardamos la posición donde inicia el prota
+            // Guardar la posición donde inicia el prota
             if (mapa[i][j] == 3) {
                 jugadorFila = i;
                 jugadorColumna = j;
@@ -106,7 +110,6 @@ void Juego::dibujarMapa() {
 
     escena->clear();
 
-    // Carga de imágenes desde el sistema de recursos .qrc con el prefijo ":/"
     QPixmap imgPared(":/imagenes/muro.png");
     QPixmap imgCamino(":/imagenes/camino.png");
     QPixmap imgSalida(":/imagenes/salida.png");
@@ -133,7 +136,7 @@ void Juego::dibujarMapa() {
                 caminoItem->setPos(j * tamCelda, i * tamCelda);
                 escena->addItem(caminoItem);
             }
-            // Caso 3: Si es la Salida (2) -> ¡Camino de fondo + Salida encima!
+            // Caso 3: Si es la Salida (2) -> Camino de fondo + Salida encima
             else if(mapa[i][j] == 2) {
                 // 1. Dibujamos el camino primero (atrás)
                 QGraphicsPixmapItem *caminoFondo = new QGraphicsPixmapItem(imgCamino);
@@ -145,7 +148,7 @@ void Juego::dibujarMapa() {
                 salidaItem->setPos(j * tamCelda, i * tamCelda);
                 escena->addItem(salidaItem);
             }
-            // Caso 4: Si es el Jugador (3) -> ¡Camino de fondo + Prota encima!
+            // Caso 4: Si es el Jugador (3) -> Camino de fondo + Prota encima
             else if(mapa[i][j] == 3) {
                 // 1. Dibujamos el camino primero (atrás)
                 QGraphicsPixmapItem *caminoFondo = new QGraphicsPixmapItem(imgCamino);
@@ -171,10 +174,8 @@ void Juego::dibujarMapa() {
     escena->setSceneRect(0, 0, columnas * tamCelda, filas * tamCelda);
 }
 
-// CORRECCIÓN CLAVE: Este evento se ejecuta cuando la ventana se muestra físicamente en pantalla
-// garantizando que las dimensiones calculadas para encajar el mapa sean las correctas.
 void Juego::showEvent(QShowEvent *event) {
-    QWidget::showEvent(event); // Ejecutar comportamiento base de Qt
+    QWidget::showEvent(event);
 
     if (escena && vista) {
         // Ajusta y estira la escena para ocupar toda la pantalla manteniendo la proporción
@@ -206,18 +207,17 @@ void Juego::keyPressEvent(QKeyEvent *event) {
         return;
     }
 
-    // VALIDACIÓN 1: Asegurarse de que no se salga de las dimensiones de la matriz
+    // VALIDACIÓN 1: Asegurarse de que no se salga de las dimensiones de la matriz (si no, morimos)
     if (nuevaFila >= 0 && nuevaFila < filas && nuevaColumna >= 0 && nuevaColumna < columnas) {
 
-        // VALIDACIÓN 2: ¿La celda destino NO es un muro (1)?
+        // VALIDACIÓN 2: La celda destino NO es un muro (1)?
         if (mapa[nuevaFila][nuevaColumna] != 1) {
 
-            // Si el destino es la salida (2), puedes lanzar un mensaje de victoria aquí
+            // Si el destino es la salida (2), se puede lanzar un mensaje de victoria aquí
             if (mapa[nuevaFila][nuevaColumna] == 2) {
-                // ¡Ganaste! Por ahora dejemos que camine encima
+                // ¡Ganaste! Yyyyyy proximamente veo que mensaje
             }
 
-            // MODIFICAR LA MATRIZ:
             // 1. La celda vieja donde estaba el prota vuelve a ser un camino libre (0)
             mapa[jugadorFila][jugadorColumna] = 0;
 
